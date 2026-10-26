@@ -1,0 +1,22 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "vue", "import"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn"
+  },
+  "rules": {
+    "import/no-unassigned-import": [
+      "warn",
+      {
+        "allow": ["**/*.css", "**/*.scss", "vuetify/styles"]
+      }
+    ]
+  },
+  "env": {
+    "builtin": true,
+    "browser": true,
+    "node": true
+  },
+  "ignorePatterns": [".nuxt/**", ".output/**", ".data/**", "node_modules/**"]
+}
