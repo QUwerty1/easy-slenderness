@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -23,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = "django-insecure-q#&ji=0qv9op=5xls5%+=!1j+#+n*fm)5$=$+7(5fe3yqv_abb"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
 
 ALLOWED_HOSTS = []
 
@@ -50,6 +51,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "authorization.middleware.SessionActivityMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -90,26 +92,36 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
-    },
-    {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+        "OPTIONS": {"min_length": 8},
     },
 ]
+
+AUTH_USER_MODEL = "authorization.User"
+
+
+# Sessions: stored on the server, expire after 30 minutes of inactivity
+# https://docs.djangoproject.com/en/6.1/topics/http/sessions/
+
+SESSION_COOKIE_AGE = 30 * 60
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 60 * 60 * 24 * 365
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
 
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE = "ru"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "Asia/Irkutsk"
 
 USE_I18N = True
 
@@ -127,6 +139,30 @@ STATIC_URL = "static/"
 
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.ScopedRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "register": "20/hour",
+        "login": "30/min",
+        "2fa": "30/min",
+        "password_reset": "10/hour",
+    },
+}
+
+
+# Cache (used by DRF throttling)
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+    },
 }
 
 
@@ -148,3 +184,22 @@ MAILERS = {
         "BACKEND": "django.core.mail.backends.console.EmailBackend",
     },
 }
+
+
+# Authorization module
+# Lockout after repeated failures (password or 2FA code), password reset
+# link lifetime, TOTP secret encryption key and the client URL used in emails.
+
+AUTH_LOCKOUT_ATTEMPTS = 5
+AUTH_LOCKOUT_MINUTES = 15
+PASSWORD_RESET_TTL_MINUTES = 30
+DELETED_ACCOUNT_RETENTION_DAYS = 30
+TOTP_ISSUER = "Легкая стройность"
+# Fernet key; generate with `Fernet.generate_key()` and pass via env in production
+TOTP_ENCRYPTION_KEY = os.environ.get(
+    "TOTP_ENCRYPTION_KEY", "1nqgH7mPOKRvbCtu3NnE6u3E5wq3vH0Pq0Z7VvE5GtU="
+)
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+# The client proxies /api/** to Django, so requests carry the client's Origin
+CSRF_TRUSTED_ORIGINS = [FRONTEND_URL]
+DEFAULT_FROM_EMAIL = "noreply@easy-slenderness.local"
