@@ -29,6 +29,9 @@ async function logout() {
         </v-list>
       </v-menu>
     </template>
+    <template v-if="auth.isAuthed" #extension>
+      <CourseNav />
+    </template>
   </v-app-bar>
   <v-main>
     <slot />

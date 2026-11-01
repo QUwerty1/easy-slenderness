@@ -203,3 +203,21 @@ FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
 # The client proxies /api/** to Django, so requests carry the client's Origin
 CSRF_TRUSTED_ORIGINS = [FRONTEND_URL]
 DEFAULT_FROM_EMAIL = "noreply@easy-slenderness.local"
+
+
+# Course management module
+# Payment service: "fake" imitates it for development (client page /payment/fake),
+# "yookassa" uses the YooKassa API with the shop credentials below.
+# The system timer is `python manage.py update_course_states`, run every minute
+# by the OS scheduler (cron / Task Scheduler).
+
+PAYMENT_GATEWAY = os.environ.get("PAYMENT_GATEWAY", "fake")
+YOOKASSA_SHOP_ID = os.environ.get("YOOKASSA_SHOP_ID", "")
+YOOKASSA_SECRET_KEY = os.environ.get("YOOKASSA_SECRET_KEY", "")
+
+SPECTACULAR_SETTINGS["ENUM_NAME_OVERRIDES"] = {
+    "UserStatusEnum": "authorization.models.User.Status",
+    "CourseStatusEnum": "course.models.Course.Status",
+    "ParticipantStatusEnum": "course.models.Participant.Status",
+    "ExclusionRequestStatusEnum": "course.models.ExclusionRequest.Status",
+}
