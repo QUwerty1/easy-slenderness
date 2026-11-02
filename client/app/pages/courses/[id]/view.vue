@@ -6,7 +6,6 @@ const route = useRoute()
 const auth = useAuthStore()
 const api = useCourseApi()
 const id = Number(route.params.id)
-const tab = ref('info')
 
 const { data: course, error } = useAsyncData(`course-${id}`, () => api<Course>(`courses/${id}/`))
 const isAdmin = computed(() => auth.user?.role === 'admin')
@@ -34,38 +33,18 @@ const back = computed(() =>
         <v-col cols="12" md="3">
           <v-card>
             <v-list color="primary" nav>
-              <v-list-item
-                :active="tab === 'info'"
-                prepend-icon="mdi-information"
-                title="Информация о курсе"
-                @click="tab = 'info'"
-              />
+              <v-list-item active prepend-icon="mdi-information" title="Информация о курсе" />
               <v-list-item
                 v-if="!isAdmin"
-                :active="tab === 'homework'"
                 prepend-icon="mdi-notebook-edit"
                 title="Домашние задания"
-                @click="tab = 'homework'"
+                :to="`/courses/${id}/homework`"
               />
             </v-list>
           </v-card>
         </v-col>
         <v-col cols="12" md="9">
-          <v-card v-if="tab === 'homework' && !isAdmin" title="Домашние задания">
-            <v-card-text>
-              <!-- The section is implemented by the course delivery module (homework) -->
-              <v-alert type="info" variant="tonal">
-                {{
-                  auth.user?.role === 'tutor'
-                    ? 'Домашние задания всех участников курса.'
-                    : 'Ваши домашние задания.'
-                }}
-                Раздел реализуется в модуле проведения курса.
-                <template v-if="archived"> Архивный курс: только просмотр.</template>
-              </v-alert>
-            </v-card-text>
-          </v-card>
-          <v-card v-else title="Информация о курсе">
+          <v-card title="Информация о курсе">
             <v-card-text>
               <p class="mb-2"><b>Статус:</b> {{ course.status_display }}</p>
               <p class="mb-2">
