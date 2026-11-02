@@ -37,7 +37,7 @@ class Command(BaseCommand):
             return
         courses = []
         for name, status, price, days in COURSES:
-            start = (now + timedelta(days=days)).replace(
+            start = (now - timedelta(days=days)).replace(
                 hour=10, minute=0, second=0, microsecond=0
             )
             course, _ = Course.objects.update_or_create(
@@ -53,8 +53,8 @@ class Command(BaseCommand):
             courses.append(course)
         services.update_states(now)
 
-        _, _, running_paid, running_free, archived = courses
-        for course in (running_paid, running_free, archived):
+        running_paid, running_free, _, _, _ = courses
+        for course in (running_paid, running_free):
             for user in learners:
                 participant, created = Participant.objects.get_or_create(
                     user=user,
@@ -62,6 +62,11 @@ class Command(BaseCommand):
                     status=Participant.Status.ACTIVE,
                     defaults={"method": Participant.Method.SELF},
                 )
+                if created:
+                    # Self-enrolment happens before the start (auto_now_add sets "now").
+                    Participant.objects.filter(pk=participant.pk).update(
+                        enrolled_at=course.start_at - timedelta(days=3)
+                    )
                 if created and course.is_paid:
                     Payment.objects.create(
                         participant=participant,

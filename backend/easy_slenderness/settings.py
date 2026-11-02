@@ -133,6 +133,9 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 
+# Uploaded files (meal photos); served only through access-checked API views.
+MEDIA_ROOT = BASE_DIR / "media"
+
 
 # Django REST framework
 # https://www.django-rest-framework.org/api-guide/settings/
